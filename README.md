@@ -15,4 +15,4 @@ d: delete task
 j: move down task
 k: move up task
 ```
-the default starting date is days until 2030. due to AGI maybe arriving 2030. maybe doing tasks past AGI wouldn't make sense for humans. who knows what happens then.  
+the root date and default due date is days until 2030. due to AGI maybe arriving 2030. maybe doing tasks past AGI wouldn't make sense for humans. who knows what happens then.  
