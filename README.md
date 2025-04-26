@@ -15,6 +15,7 @@ d: delete task
 j: move down task
 k: move up task
 while editing: enter to send and delete to delete
+q: quit
 ```
 if using linux, put  
 alias tvdo="~/yourlocation/tvdo/tvdo"   
