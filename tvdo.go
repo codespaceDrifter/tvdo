@@ -1,14 +1,4 @@
 /*
-TO DO:
-read and understand every line
-
-clean it up. make it functional? 
-3 types of functions
-no class. yes return : purely functional
-yes class. no return: modify state in place
-no class. no return: side effects
-
-fix the save load
 add the auto decrease day system
 for the ROOT Day. do DAY until 2030. 
 */
@@ -24,7 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
+	"time"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -35,8 +25,6 @@ type Task struct {
 	Parent   *Task    `json:"-"`
 }
 
-var root = &Task{Name: "ROOT"}
-
 type model struct {
 	tasks      []*Task
 	cursor     int
@@ -45,18 +33,35 @@ type model struct {
 	editingDue bool
 }
 
+
+var now = time.Now()
+var AGIdate = time.Date(2030, time.January, 1,0,0,0,0, time.UTC)
+var today = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+var daysUntilAGI = int(AGIdate.Sub(today).Hours() / 24)
+
+var root = &Task{Name: "ROOT", Due: daysUntilAGI}
+
+
 func getSavePath() string {
 	exe, _ := os.Executable()
 	return filepath.Join(filepath.Dir(exe), "tasks.json")
 }
 
+func getDatePath() string {
+	exe, _ := os.Executable()
+	return filepath.Join(filepath.Dir(exe), "dates.json")
+}
+
 func saveToFile() {
-	f, err := os.Create(getSavePath())
-	if err != nil {
-		return
-	}
+	f, _:= os.Create(getSavePath())
 	defer f.Close()
 	json.NewEncoder(f).Encode(root)
+
+	f2, _ := os.Create(getDatePath())
+	defer f2.Close()
+
+
+	f2.WriteString(today.Format(time.RFC3339))
 }
 
 
@@ -67,17 +72,31 @@ func (t *Task) setParents(parent *Task) {
     }
 }
 
+func (t *Task) decreaseAllDays (diffDays int) {
+	t.Due = t.Due - diffDays
+	for _, subtask := range t.Subtasks {
+		subtask.decreaseAllDays(diffDays)
+	}
+}
+
+
 func (t *Task) loadFromFile() {
-    f, err := os.Open(getSavePath())
-    if err != nil {
-        return
-    }
-    defer f.Close()
-    var loaded Task
-    if err := json.NewDecoder(f).Decode(&loaded); err == nil {
-        *t = loaded
-        t.setParents(nil)
-    }
+	f, _ := os.Open(getSavePath())
+	defer f.Close()
+	var loaded Task
+	if err := json.NewDecoder(f).Decode(&loaded); err == nil {
+		*t = loaded
+		t.setParents(nil)
+	}
+
+	data, _ := os.ReadFile(getDatePath())
+	strData := strings.TrimSpace(string(data))
+
+	parsedDate, _ := time.Parse(time.RFC3339, strData)
+	diffDays := int(today.Sub(parsedDate).Hours() / 24)
+
+
+	root.decreaseAllDays(diffDays)
 }
 
 func (m *model) updateTasks() {
@@ -117,7 +136,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					selected := m.tasks[m.cursor]
 
 					if (m.adding){
-						t := &Task{Name: m.input, Parent: selected, Due: 0}
+						t := &Task{Name: m.input, Parent: selected, Due: daysUntilAGI}
 						selected.Subtasks = append(selected.Subtasks, t)
 						m.adding = false
 					} else if (m.editingDue) {
@@ -227,11 +246,13 @@ func (m model) View() string {
 
 func main() {
 	root.loadFromFile()
+	root.Due = daysUntilAGI
 	initialTasks := flatten(root)
 	var bubbleModel = model{
 		tasks: initialTasks,
 		cursor: 0,
 	}
+	saveToFile()
 	p := tea.NewProgram(bubbleModel)
 	if err := p.Start(); err != nil {
 		fmt.Println("Error:", err)
