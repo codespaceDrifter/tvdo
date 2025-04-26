@@ -16,8 +16,8 @@ j: move down task
 k: move up task
 while editing: enter to send and delete to delete
 ```
-if using linux  
+if using linux, put
 alias tvdo="~/yourlocation/tvdo/tvdo"  
-to call tvdo in terminal  
+in bashrc to call tvdo in terminal  
 
 the root date and default due date is days until 2030. due to AGI maybe arriving 2030. maybe doing tasks past AGI wouldn't make sense for humans. who knows what happens then.  
